@@ -19,6 +19,7 @@ public class CommandEnum {
     public static final CommandEnum ENUM_BOOLEAN = new CommandEnum("Boolean", ImmutableList.of("true", "false"));
     public static final CommandEnum ENUM_GAMEMODE = new CommandEnum("GameMode",
             ImmutableList.of("survival", "creative", "s", "c", "adventure", "a", "spectator", "view", "v", "spc"));
+    public static final CommandEnum SCOREBOARD_OBJECTIVES = new CommandEnum("ScoreboardObjectives", () -> Server.getInstance().getScoreboardManager().getScoreboards().keySet());
     /**
      * @since 589
      */

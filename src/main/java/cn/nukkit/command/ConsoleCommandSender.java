@@ -1,7 +1,11 @@
 package cn.nukkit.command;
 
 import cn.nukkit.Server;
+import cn.nukkit.event.server.ConsoleCommandOutputEvent;
+import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.TextContainer;
+import cn.nukkit.lang.TranslationContainer;
+import cn.nukkit.level.GameRule;
 import cn.nukkit.permission.PermissibleBase;
 import cn.nukkit.permission.Permission;
 import cn.nukkit.permission.PermissionAttachment;
@@ -73,6 +77,7 @@ public class ConsoleCommandSender implements CommandSender {
         return this.perm.getEffectivePermissions();
     }
 
+    @Override
     public boolean isPlayer() {
         return false;
     }
@@ -93,6 +98,20 @@ public class ConsoleCommandSender implements CommandSender {
     @Override
     public void sendMessage(TextContainer message) {
         this.sendMessage(this.getServer().getLanguage().translate(message));
+    }
+
+    @Override
+    public void sendCommandOutput(CommandOutputContainer container) {
+        if (this.getLocation().getLevel().getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK)) {
+            for (var msg : container.getMessages()) {
+                ConsoleCommandOutputEvent event = new ConsoleCommandOutputEvent(this, this.getServer().getLanguage().translate(new TranslationContainer(msg.getMessageId(), msg.getParameters())));
+                this.getServer().getPluginManager().callEvent(event);
+                if (event.isCancelled()) {
+                    continue;
+                }
+                this.sendMessage(event.getMessage());
+            }
+        }
     }
 
     @Override

@@ -50,6 +50,25 @@ public class PluginManager {
         this.commandMap = commandMap;
     }
 
+    public void loadInternalPlugin() {
+        PluginLoader pluginLoader = fileAssociations.get(JavaPluginLoader.class.getName());
+        InternalPlugin plugin = InternalPlugin.INSTANCE;
+        Map<String, Object> info = new HashMap<>();
+        info.put("name", "Nukkit-MOT");
+        info.put("version", server.getNukkitVersion());
+        info.put("main", InternalPlugin.class.getName());
+        File file;
+        try {
+            file = new File(Server.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (Exception e) {
+            file = new File(".");
+        }
+        PluginDescription description = new PluginDescription(info);
+        plugin.init(pluginLoader, server, description, new File("Nukkit-MOT"), file);
+        plugins.put(description.getName(), plugin);
+        this.enablePlugin(plugin);
+    }
+
     public Plugin getPlugin(String name) {
         if (this.plugins.containsKey(name)) {
             return this.plugins.get(name);

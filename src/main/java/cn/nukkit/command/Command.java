@@ -11,6 +11,7 @@ import co.aikar.timings.Timing;
 import co.aikar.timings.Timings;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author MagicDroidX
@@ -124,7 +125,9 @@ public abstract class Command {
             overload.input.parameters = par;
             customData.overloads.put(key, overload);
         });
-        if (customData.overloads.isEmpty()) customData.overloads.put("default", new CommandOverload());
+        if (customData.overloads.isEmpty()) {
+            customData.overloads.put("default", new CommandOverload());
+        }
         CommandDataVersions versions = new CommandDataVersions();
         versions.versions.add(customData);
         return versions;
@@ -231,6 +234,31 @@ public abstract class Command {
 
     public String getUsage() {
         return usageMessage;
+    }
+
+    public String getCommandFormatTips() {
+        StringBuilder builder = new StringBuilder();
+        for (String form : this.getCommandParameters().keySet()) {
+            CommandParameter[] commandParameters = this.getCommandParameters().get(form);
+            builder.append("- /" + this.getName());
+            for (CommandParameter commandParameter : commandParameters) {
+                if (!commandParameter.optional) {
+                    if (commandParameter.enumData == null) {
+                        builder.append(" <").append(commandParameter.name + ": " + commandParameter.type.name().toLowerCase()).append(">");
+                    } else {
+                        builder.append(" <").append(commandParameter.enumData.getValues().subList(0, Math.min(commandParameter.enumData.getValues().size(), 10)).stream().collect(Collectors.joining("|"))).append(commandParameter.enumData.getValues().size() > 10 ? "|..." : "").append(">");
+                    }
+                } else {
+                    if (commandParameter.enumData == null) {
+                        builder.append(" [").append(commandParameter.name + ": " + commandParameter.type.name().toLowerCase()).append("]");
+                    } else {
+                        builder.append(" [").append(commandParameter.enumData.getValues().subList(0, Math.min(commandParameter.enumData.getValues().size(), 10)).stream().collect(Collectors.joining("|"))).append(commandParameter.enumData.getValues().size() > 10 ? "|..." : "").append("]");
+                    }
+                }
+            }
+            builder.append("\n");
+        }
+        return builder.toString();
     }
 
     public void setAliases(String[] aliases) {

@@ -11,6 +11,7 @@ import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.command.data.CommandDataVersions;
 import cn.nukkit.command.defaults.HelpCommand;
+import cn.nukkit.command.utils.RawText;
 import cn.nukkit.entity.*;
 import cn.nukkit.entity.data.*;
 import cn.nukkit.entity.item.*;
@@ -47,6 +48,7 @@ import cn.nukkit.item.customitem.ItemCustomArmor;
 import cn.nukkit.item.customitem.ItemCustomTool;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.item.food.Food;
+import cn.nukkit.lang.CommandOutputContainer;
 import cn.nukkit.lang.LangCode;
 import cn.nukkit.lang.TextContainer;
 import cn.nukkit.lang.TranslationContainer;
@@ -75,6 +77,12 @@ import cn.nukkit.potion.Effect;
 import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
+import cn.nukkit.scoreboard.data.DisplaySlot;
+import cn.nukkit.scoreboard.data.SortOrder;
+import cn.nukkit.scoreboard.displayer.IScoreboardViewer;
+import cn.nukkit.scoreboard.scoreboard.IScoreboard;
+import cn.nukkit.scoreboard.scoreboard.IScoreboardLine;
+import cn.nukkit.scoreboard.scorer.PlayerScorer;
 import cn.nukkit.utils.*;
 import co.aikar.timings.Timing;
 import co.aikar.timings.Timings;
@@ -121,7 +129,7 @@ import java.util.stream.Stream;
  * Nukkit Project
  */
 @Log4j2
-public class Player extends EntityHuman implements CommandSender, InventoryHolder, ChunkLoader, IPlayer {
+public class Player extends EntityHuman implements CommandSender, InventoryHolder, ChunkLoader, IPlayer, IScoreboardViewer {
 
     public static final int SURVIVAL = 0;
     public static final int CREATIVE = 1;
@@ -4948,6 +4956,31 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.sendMessage(message.getText());
     }
 
+    public void sendCommandOutput(CommandOutputContainer container) {
+        if (this.level.getGameRules().getBoolean(GameRule.SEND_COMMAND_FEEDBACK)) {
+            var pk = new CommandOutputPacket();
+            pk.messages.addAll(container.getMessages());
+            pk.commandOriginData = new CommandOriginData(CommandOriginData.Origin.PLAYER, this.getUniqueId(), "", null);//Only players can effect
+            pk.type = CommandOutputType.ALL_OUTPUT;//Useless
+            pk.successCount = container.getSuccessCount();//Useless,maybe used for server-client interaction
+            this.dataPacket(pk);
+        }
+    }
+
+    /**
+     * 在玩家聊天栏发送一个JSON文本
+     * <p>
+     * Send a JSON text in the player chat bar
+     *
+     * @param text JSON文本<br>Json text
+     */
+    public void sendRawTextMessage(RawText text) {
+        TextPacket pk = new TextPacket();
+        pk.type = TextPacket.TYPE_OBJECT;
+        pk.message = text.toRawText();
+        this.dataPacket(pk);
+    }
+
     public void sendTranslation(String message) {
         this.sendTranslation(message, new String[0]);
     }
@@ -6934,4 +6967,86 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public boolean isEnableNetworkEncryption() {
         return protocol >= ProtocolInfo.v1_7_0 && this.server.encryptionEnabled && loginChainData.isXboxAuthed();
     }
+
+
+
+    // 计分板部分
+
+    @Override
+    public void removeLine(IScoreboardLine line) {
+        SetScorePacket packet = new SetScorePacket();
+        packet.action = SetScorePacket.Action.REMOVE;
+        var networkInfo = line.toNetworkInfo();
+        if (networkInfo != null)
+            packet.infos.add(networkInfo);
+        this.dataPacket(packet);
+
+        var scorer = new PlayerScorer(this);
+        if (line.getScorer().equals(scorer) && line.getScoreboard().getViewers(DisplaySlot.BELOW_NAME).contains(this)) {
+            this.setScoreTag("");
+        }
+    }
+
+    @Override
+    public void updateScore(IScoreboardLine line) {
+        SetScorePacket packet = new SetScorePacket();
+        packet.action = SetScorePacket.Action.SET;
+        var networkInfo = line.toNetworkInfo();
+        if (networkInfo != null)
+            packet.infos.add(networkInfo);
+        this.dataPacket(packet);
+
+        var scorer = new PlayerScorer(this);
+        if (line.getScorer().equals(scorer) && line.getScoreboard().getViewers(DisplaySlot.BELOW_NAME).contains(this)) {
+            this.setScoreTag(line.getScore() + " " + line.getScoreboard().getDisplayName());
+        }
+    }
+
+    @Override
+    public void display(IScoreboard scoreboard, DisplaySlot slot) {
+        SetDisplayObjectivePacket pk = new SetDisplayObjectivePacket();
+        pk.displaySlot = slot;
+        pk.objectiveName = scoreboard.getObjectiveName();
+        pk.displayName = scoreboard.getDisplayName();
+        pk.criteriaName = scoreboard.getCriteriaName();
+        pk.sortOrder = scoreboard.getSortOrder();
+        this.dataPacket(pk);
+
+        //client won't storage the score of a scoreboard,so we should send the score to client
+        SetScorePacket pk2 = new SetScorePacket();
+        pk2.infos = scoreboard.getLines().values().stream().map(line -> line.toNetworkInfo()).filter(line -> line != null).collect(Collectors.toList());
+        pk2.action = SetScorePacket.Action.SET;
+        this.dataPacket(pk2);
+
+        var scorer = new PlayerScorer(this);
+        var line = scoreboard.getLine(scorer);
+        if (slot == DisplaySlot.BELOW_NAME && line != null) {
+            this.setScoreTag(line.getScore() + " " + scoreboard.getDisplayName());
+        }
+    }
+
+    @Override
+    public void hide(DisplaySlot slot) {
+        SetDisplayObjectivePacket pk = new SetDisplayObjectivePacket();
+        pk.displaySlot = slot;
+        pk.objectiveName = "";
+        pk.displayName = "";
+        pk.criteriaName = "";
+        pk.sortOrder = SortOrder.ASCENDING;
+        this.dataPacket(pk);
+
+        if (slot == DisplaySlot.BELOW_NAME) {
+            this.setScoreTag("");
+        }
+    }
+
+    @Override
+    public void removeScoreboard(IScoreboard scoreboard) {
+        RemoveObjectivePacket pk = new RemoveObjectivePacket();
+        pk.objectiveName = scoreboard.getObjectiveName();
+
+        this.dataPacket(pk);
+    }
+
+    // 计分板部分结束
 }

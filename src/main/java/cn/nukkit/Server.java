@@ -27,6 +27,7 @@ import cn.nukkit.item.Item;
 import cn.nukkit.item.RuntimeItems;
 import cn.nukkit.item.enchantment.Enchantment;
 import cn.nukkit.lang.BaseLang;
+import cn.nukkit.lang.LangCode;
 import cn.nukkit.lang.TextContainer;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.EnumLevel;
@@ -72,6 +73,9 @@ import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePackManager;
 import cn.nukkit.scheduler.ServerScheduler;
 import cn.nukkit.scheduler.Task;
+import cn.nukkit.scoreboard.manager.IScoreboardManager;
+import cn.nukkit.scoreboard.manager.ScoreboardManager;
+import cn.nukkit.scoreboard.storage.JSONScoreboardStorage;
 import cn.nukkit.utils.*;
 import cn.nukkit.utils.bugreport.ExceptionHandler;
 import co.aikar.timings.Timings;
@@ -139,6 +143,7 @@ public class Server {
     private final CraftingManager craftingManager;
     private final ResourcePackManager resourcePackManager;
     private final ConsoleCommandSender consoleSender;
+    private IScoreboardManager scoreboardManager;
 
     private int maxPlayers;
     private boolean autoSave = true;
@@ -161,11 +166,13 @@ public class Server {
     private int autoSaveTicks;
 
     private final BaseLang baseLang;
+    private LangCode baseLangCode;
     private boolean forceLanguage;
 
     private final String filePath;
     private final String dataPath;
     private final String pluginPath;
+    private final String commandDataPath;
 
     private String ip;
     private int port;
@@ -515,6 +522,11 @@ public class Server {
 
         this.dataPath = new File(dataPath).getAbsolutePath() + '/';
         this.pluginPath = new File(pluginPath).getAbsolutePath() + '/';
+        this.commandDataPath = new File(dataPath).getAbsolutePath() + "/command_data";
+
+        if (!new File(commandDataPath).exists()) {
+            new File(commandDataPath).mkdirs();
+        }
 
         this.playerDataSerializer = new DefaultPlayerDataSerializer(this);
 
@@ -554,7 +566,9 @@ public class Server {
             new File(dataPath + "players/").mkdirs();
         }
 
-        this.baseLang = new BaseLang(this.getPropertyString("language", BaseLang.FALLBACK_LANGUAGE));
+        String language = this.getPropertyString("language", BaseLang.FALLBACK_LANGUAGE);
+        this.baseLang = new BaseLang(language);
+        this.baseLangCode = mapInternalLang(language);
 
         Object poolSize = this.getProperty("async-workers", "auto");
         if (!(poolSize instanceof Integer)) {
@@ -644,6 +658,8 @@ public class Server {
 
         this.serverID = UUID.randomUUID();
 
+        this.scoreboardManager = new ScoreboardManager(new JSONScoreboardStorage(this.commandDataPath + "/scoreboard.json"));
+
         this.craftingManager = new CraftingManager();
         this.resourcePackManager = new ResourcePackManager(new File(Nukkit.DATA_PATH, "resource_packs"));
 
@@ -661,6 +677,7 @@ public class Server {
         this.network.registerInterface(new RakNetInterface(this));
 
         if (loadPlugins) {
+            this.pluginManager.loadInternalPlugin();
             this.pluginManager.loadPlugins(this.pluginPath);
             this.enablePlugins(PluginLoadOrder.STARTUP);
         }
@@ -943,6 +960,8 @@ public class Server {
             level.save();
         }
 
+        this.scoreboardManager.save();
+
         this.pluginManager.clearPlugins();
         this.commandMap.clearCommands();
 
@@ -1016,6 +1035,9 @@ public class Server {
 
             this.getLogger().debug("Removing event handlers...");
             HandlerList.unregisterAll();
+
+            log.debug("Saving scoreboards data");
+            this.scoreboardManager.save();
 
             this.getLogger().debug("Stopping all tasks...");
             this.scheduler.cancelAllTasks();
@@ -2372,6 +2394,34 @@ public class Server {
         return baseLang;
     }
 
+    public LangCode getLanguageCode() {
+        return baseLangCode;
+    }
+
+    private LangCode mapInternalLang(String langName) {
+        return switch (langName) {
+            case "bra" -> LangCode.pt_BR;
+            case "chs" -> LangCode.zh_CN;
+            case "cht" -> LangCode.zh_TW;
+            case "cze" -> LangCode.cs_CZ;
+            case "deu" -> LangCode.de_DE;
+            case "fin" -> LangCode.fi_FI;
+            case "eng" -> LangCode.en_US;
+            case "fra" -> LangCode.en_US;
+            case "idn" -> LangCode.id_ID;
+            case "jpn" -> LangCode.ja_JP;
+            case "kor" -> LangCode.ko_KR;
+            case "ltu" -> LangCode.en_US;
+            case "pol" -> LangCode.pl_PL;
+            case "rus" -> LangCode.ru_RU;
+            case "spa" -> LangCode.es_ES;
+            case "tur" -> LangCode.tr_TR;
+            case "ukr" -> LangCode.uk_UA;
+            case "vie" -> LangCode.en_US;
+            default -> throw new IllegalArgumentException();
+        };
+    }
+
     /**
      * Is forcing language enabled
      *
@@ -2540,6 +2590,10 @@ public class Server {
         } else {
             return null;
         }
+    }
+
+    public IScoreboardManager getScoreboardManager() {
+        return this.scoreboardManager;
     }
 
     /**

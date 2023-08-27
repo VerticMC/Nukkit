@@ -1,7 +1,7 @@
 package cn.nukkit.network.protocol;
 
-import cn.nukkit.network.protocol.types.DisplaySlot;
-import cn.nukkit.network.protocol.types.SortOrder;
+import cn.nukkit.scoreboard.data.DisplaySlot;
+import cn.nukkit.scoreboard.data.SortOrder;
 
 public class SetDisplayObjectivePacket extends DataPacket {
 
@@ -33,4 +33,5 @@ public class SetDisplayObjectivePacket extends DataPacket {
         this.putString(this.criteriaName);
         this.putVarInt(this.sortOrder.ordinal());
     }
+
 }

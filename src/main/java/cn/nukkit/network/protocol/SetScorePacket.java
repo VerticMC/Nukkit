@@ -1,11 +1,12 @@
 package cn.nukkit.network.protocol;
 
-import cn.nukkit.network.protocol.types.ScorerType;
+import cn.nukkit.scoreboard.data.ScorerType;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SetScorePacket extends DataPacket {
+
     public Action action;
     public List<ScoreInfo> infos = new ArrayList<>();
 
@@ -32,9 +33,15 @@ public class SetScorePacket extends DataPacket {
             if (this.action == Action.SET) {
                 this.putByte((byte) info.type.ordinal());
                 switch (info.type) {
-                    case ENTITY, PLAYER -> this.putVarLong(info.entityId);
-                    case FAKE -> this.putString(info.name);
-                    default -> throw new IllegalArgumentException("Invalid score info received");
+                    case ENTITY:
+                    case PLAYER:
+                        this.putVarLong(info.entityId);
+                        break;
+                    case FAKE:
+                        this.putString(info.name);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid score info received");
                 }
             }
         }

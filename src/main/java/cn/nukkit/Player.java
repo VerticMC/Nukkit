@@ -76,6 +76,10 @@ import cn.nukkit.potion.Effect;
 import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
+import cn.nukkit.scoreboard.data.DisplaySlot;
+import cn.nukkit.scoreboard.displayer.IScoreboardViewer;
+import cn.nukkit.scoreboard.scoreboard.IScoreboard;
+import cn.nukkit.scoreboard.scoreboard.IScoreboardLine;
 import cn.nukkit.utils.*;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
@@ -122,7 +126,7 @@ import java.util.stream.Stream;
  * Nukkit Project
  */
 @Log4j2
-public class Player extends EntityHuman implements CommandSender, InventoryHolder, ChunkLoader, IPlayer {
+public class Player extends EntityHuman implements CommandSender, InventoryHolder, ChunkLoader, IPlayer, IScoreboardViewer {
 
     public static final int SURVIVAL = 0;
     public static final int CREATIVE = 1;
@@ -7063,4 +7067,30 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public boolean isEnableNetworkEncryption() {
         return protocol >= ProtocolInfo.v1_7_0 && this.server.encryptionEnabled /*&& loginChainData.isXboxAuthed()*/;
     }
+
+    @Override
+    public void display(IScoreboard scoreboard, DisplaySlot slot) {
+
+    }
+
+    @Override
+    public void hide(DisplaySlot slot) {
+
+    }
+
+    @Override
+    public void removeScoreboard(IScoreboard scoreboard) {
+
+    }
+
+    @Override
+    public void removeLine(IScoreboardLine line) {
+
+    }
+
+    @Override
+    public void updateScore(IScoreboardLine line) {
+
+    }
+    
 }

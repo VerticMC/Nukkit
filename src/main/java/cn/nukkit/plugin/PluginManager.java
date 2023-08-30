@@ -39,9 +39,8 @@ public class PluginManager {
 
     protected final Map<String, Set<Permissible>> permSubs = new ConcurrentHashMap<>();
 
-    protected final Set<Permissible> defSubs = new ConcurrentSet<>();
-
-    protected final Set<Permissible> defSubsOp = new ConcurrentSet<>();
+    protected final Set<Permissible> defSubs = Collections.newSetFromMap(new WeakHashMap<>());
+    protected final Set<Permissible> defSubsOp = Collections.newSetFromMap(new WeakHashMap<>());
 
     protected final Map<String, PluginLoader> fileAssociations = new HashMap<>();
 
@@ -79,7 +78,7 @@ public class PluginManager {
         PluginLoader pluginLoader = fileAssociations.get(JavaPluginLoader.class.getName());
         InternalPlugin plugin = InternalPlugin.INSTANCE;
         Map<String, Object> info = new HashMap<>();
-        info.put("name", "Nukkit-MOT");
+        info.put("name", "Nukkit-VNC");
         info.put("version", server.getNukkitVersion());
         info.put("main", InternalPlugin.class.getName());
         File file;
@@ -89,7 +88,7 @@ public class PluginManager {
             file = new File(".");
         }
         PluginDescription description = new PluginDescription(info);
-        plugin.init(pluginLoader, server, description, new File("Nukkit-MOT"), file);
+        plugin.init(pluginLoader, server, description, new File("Nukkit-VNC"), file);
         plugins.put(description.getName(), plugin);
         enablePlugin(plugin);
     }
@@ -356,7 +355,7 @@ public class PluginManager {
 
     public void subscribeToPermission(String permission, Permissible permissible) {
         if (!this.permSubs.containsKey(permission)) {
-            this.permSubs.put(permission, new ConcurrentSet<>());
+            this.permSubs.put(permission, Collections.newSetFromMap(new WeakHashMap<>()));
         }
         this.permSubs.get(permission).add(permissible);
     }

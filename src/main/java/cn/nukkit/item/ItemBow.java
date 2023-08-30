@@ -50,7 +50,7 @@ public class ItemBow extends ItemTool {
 
     @Override
     public boolean onClickAir(Player player, Vector3 directionVector) {
-        return player.isCreative() || this.getArrow(player.getInventory()) != null;
+        return player.isCreative() || (this.getArrow(player.getInventory()) != null || this.getArrow(player.getOffhandInventory()) != null);
     }
 
     @Override
@@ -94,7 +94,10 @@ public class ItemBow extends ItemTool {
                         .putInt("id", itemArrow.getId())
                         .putInt("Damage", itemArrow.getDamage())
                         .putInt("Count", 1));
-                        //.putCompound("tag", itemArrow.getNamedTag()));
+
+        if (itemArrow.hasCompoundTag()) {
+            nbt.getCompound("item").putCompound("tag", itemArrow.getNamedTag());
+        }
 
         double p = (double) ticksUsed / 20;
 

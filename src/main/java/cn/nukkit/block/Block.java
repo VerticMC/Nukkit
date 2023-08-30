@@ -48,9 +48,9 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
     public static double[] hardness = null;
     public static boolean[] transparent = null;
     public static boolean[] diffusesSkyLight = null;
-
     public static boolean[] hasMeta = null;
-    private static final boolean[] usesFakeWater = new boolean[512];
+
+    private static final boolean[] usesFakeWater = new boolean[MAX_BLOCK_ID];
 
     public AxisAlignedBB boundingBox = null;
     public int layer = 0;
@@ -360,6 +360,7 @@ public abstract class Block extends Position implements Metadatable, Cloneable, 
             list[CARVED_PUMPKIN] = BlockCarvedPumpkin.class; //410
             list[SEA_PICKLE] = BlockSeaPickle.class; //411
 
+            list[BUBBLE_COLUMN] = BlockBubbleColumn.class; //415
             list[BARRIER] = BlockBarrier.class; //416
             list[STONE_SLAB3] = BlockSlabStone3.class; //417
             list[BAMBOO] = BlockBamboo.class; //418
